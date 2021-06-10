@@ -3,6 +3,7 @@
 (declaim (special *engine*))
 
 (defvar *renderables* nil)
+(defvar *banner* nil)
 (defvar *sun* nil)
 (defvar *lights* nil)
 
