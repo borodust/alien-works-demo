@@ -168,12 +168,21 @@
                   (destroy-loop))))))))))
 
 
+(defun asset-path (asset-name)
+  (if (member :android *features*)
+      asset-name
+      (asdf:system-relative-pathname :alien-works-demo
+                                     (merge-pathnames asset-name "assets/"))))
+
+
 (aw:definit main ()
-  (flet ((%asset-path (asset-name)
-           (if (member :android *features*)
-               asset-name
-               (asdf:system-relative-pathname :alien-works-demo
-                                              (merge-pathnames asset-name "assets/")))))
-    (run (%asset-path "helmet.bin")
-         (%asset-path "skybox.bin")
-         (%asset-path "indirect.bin"))))
+  (flet ()
+    (run (asset-path "helmet.bin")
+         (asset-path "skybox.bin")
+         (asset-path "indirect.bin"))))
+
+
+(defun convert-helmet ()
+  (let ((resources (alien-works-demo.support::parse-gltf
+                    (asset-path "helmet/DamagedHelmet.gltf"))))
+    (apply #'alien-works-demo::save-resources (asset-path "helmet.bin") resources)))
