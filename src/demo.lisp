@@ -110,18 +110,25 @@
 
   (with-transform (transform
                    (:rotation (/ (real-time-seconds) 5) :x 0 :y 1 :z 0)
+                   (:rotation (/ (real-time-seconds) 10) :x 0 :y 1 :z 1)
                    (:translation :x 0 :y 0 :z 3)
                    (:scale :x 1 :y 1 :z 1))
     (aw:transform-camera *engine* transform))
 
   (with-transform (transform
-                   (:translation :x -0.5 :y -0.5 :z -0.5)
-                   #++(:rotation (+ (/ pi 2)
-                                    (* 0.5 (cos (/ (real-time-seconds) 3))))
-                       :x 0 :y 1 :z 0)
+                   (:translation :x 0 :y 0 :z 0)
+                   (:rotation (+ (/ pi 2)
+                                 (* 0.5 (cos (/ (real-time-seconds) 3))))
+                    :x 0 :y 1 :z 0)
+                   (:rotation (/ pi 2) :x 1 :y 0 :z 0)
                    (:scale :x 1 :y 1 :z 1))
     (loop for renderable in *renderables*
-          do (aw:transform-entity *engine* renderable transform))
+          do (aw:transform-entity *engine* renderable transform)))
+
+  (with-transform (transform
+                   (:translation :x -1.0 :y -1 :z -1)
+                   (:rotation (/ pi 2) :x 1 :y 0 :z 0)
+                   (:scale :x 2 :y 2 :z 2))
     (when *banner*
       (aw:transform-entity *engine* *banner* transform)))
 
