@@ -21,5 +21,5 @@
 (defun add-indirect-light (cubemap)
   (let ((light (aw:make-indirect-light *engine*
                                        (aw:.reflections cubemap)
-                                       (aw:.intensity 15000f0))))
+                                       (aw:.intensity 35000f0))))
     (setf (aw:indirect-light *engine*) light)))
