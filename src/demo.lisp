@@ -40,9 +40,8 @@
   (setf *renderables* nil
         *sun* nil
         *lights* nil)
-  (loop for renderable in (load-scene)
-        do (aw:add-scene-entity *engine* renderable)
-        do (push renderable *renderables*))
+
+  (load-scene)
 
   (aw:with-vec3 (dir :y -1)
     (setf *sun* (add-sun dir)))
