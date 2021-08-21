@@ -5,7 +5,7 @@
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
   :pathname "src/"
-  :depends-on (:alexandria :flexi-streams :static-vectors :alien-works :alien-works/support :float-features :dissect)
+  :depends-on (:alexandria :flexi-streams :static-vectors :alien-works :alien-works/tools :float-features :dissect)
   :serial t
   :components ((:file "packages")
                (:file "utils")
