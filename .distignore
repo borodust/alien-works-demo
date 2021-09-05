@@ -1,0 +1,2 @@
+/\..*           # any file or directory starting with a dot
+^/local/        # local project stuff

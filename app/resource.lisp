@@ -382,6 +382,20 @@
           (finish-output out))))))
 
 
+(defun read-into-foreign-memory (dst-ptr size octet-stream)
+  (let ((buffer-size (* 1024 1024)))
+    (static-vectors:with-static-vector (buffer buffer-size :element-type '(unsigned-byte 8))
+      (let ((buffer-ptr (static-vectors:static-vector-pointer buffer)))
+        (loop with size-read = 0
+              with current-ptr = (cffi:make-pointer (cffi:pointer-address dst-ptr))
+              while (< size-read size)
+              do (let* ((bytes-to-read (min (- size size-read) buffer-size))
+                        (bytes-read (read-sequence buffer octet-stream :start 0 :end bytes-to-read)))
+                   (aw:memcpy current-ptr buffer-ptr bytes-read)
+                   (incf size-read bytes-read)
+                   (cffi:incf-pointer current-ptr bytes-read)))))))
+
+
 (defun load-resources (path)
   (aw:with-open-host-file (out path :direction :input)
     (let* ((preamble-out (flexi-streams:make-flexi-stream out :external-format :utf8))
@@ -392,11 +406,9 @@
                       (let ((data-size 0)
                             data-ptr)
                         (when (and size (> size 0))
-                          (static-vectors:with-static-vector (vec size)
-                            (read-sequence vec out)
-                            (setf data-ptr (cffi:foreign-alloc :uint8 :count size)
-                                  data-size size)
-                            (aw:memcpy data-ptr (static-vectors:static-vector-pointer vec) size)))
+                          (setf data-ptr (cffi:foreign-alloc :uint8 :count size)
+                                data-size size)
+                          (read-into-foreign-memory data-ptr size out))
                         (decode-resource kind name
                                          descriptor
                                          data-ptr

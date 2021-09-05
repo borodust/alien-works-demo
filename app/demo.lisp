@@ -9,21 +9,6 @@
 ;;;
 ;;; DEMO
 ;;;
-(defun load-banner ()
-  (let* ((banner (alien-works-demo.support:make-banner))
-         (entity (alien-works-demo.support:banner-entity banner)))
-    (aw:add-scene-entity *engine* entity)
-    (setf *banner* entity)
-    banner))
-
-
-(defun update-banner-texture (banner surface)
-  (let ((tex (alien-works.graphics::buffered-surface-acquire surface)))
-    (unwind-protect
-         (progn
-           (setf (alien-works-demo.support:banner-texture banner) tex))
-      (alien-works.graphics::buffered-surface-release surface))))
-
 
 (defun load-scene ()
   (let* ((resources (load-resources *scene*))
@@ -57,10 +42,10 @@
 
 
 (defun destroy-loop ()
-  #++(progn
-       (loop for renderable in *renderables*
-             do (aw:destroy-renderable *engine* renderable))
-       (aw:destroy-light *engine* *sun*))
+  (progn
+    (loop for renderable in *renderables*
+          do (aw:destroy-renderable *engine* renderable))
+    (aw:destroy-light *engine* *sun*))
   (setf *renderables* nil
         *sun* nil))
 
@@ -146,49 +131,46 @@
                                       (dissect:present c *error-output*))))
     (dissect:with-capped-stack ()
       (float-features:with-float-traps-masked t
+        (print "Initializing host")
         (aw:with-window (win :context context)
           (let* ((width (aw:window-width win))
                  (height (aw:window-height win)))
+            (print "Initializing engine")
             (aw:with-engine (engine :surface (aw:window-surface win)
                                     :shared-context context
                                     :width width
                                     :height height)
-              (let* ((*engine* engine)
-                     (surface (alien-works.graphics::make-buffered-surface engine width height))
-                     (banner (load-banner))
-                     (stopped-p nil))
-                (aw:make-shared-context-thread
-                 win
-                 (lambda ()
-                   (alien-works.graphics::init-shared-context-thread
-                    surface
-                    (lambda () stopped-p))))
+              (print "Engine up")
+              (let* ((*engine* engine))
                 (init-loop)
                 (unwind-protect
                      (catch 'quit
                        (shout "Looping")
-                       (loop (handle-loop)
-                             (update-banner-texture banner surface)))
-                  (setf stopped-p t)
-                  (sleep 1) ;; FIXME: i know i know
+                       (loop (handle-loop)))
                   (destroy-loop))))))))))
 
 
 (defun asset-path (asset-name)
-  (if (member :android *features*)
-      asset-name
-      (asdf:system-relative-pathname :alien-works-demo
-                                     (merge-pathnames asset-name "assets/"))))
-
+  (cond
+    ((member :android *features*) asset-name)
+    ((member :appimage *features*) (merge-pathnames asset-name (merge-pathnames
+                                                                "usr/share/app/"
+                                                                (aw:working-directory))))
+    (t (asdf:system-relative-pathname :alien-works-demo
+                                      (merge-pathnames asset-name "assets/")))))
 
 (aw:definit main ()
-  (flet ()
-    (run (asset-path "helmet.bin")
-         (asset-path "skybox.bin")
-         (asset-path "indirect.bin"))))
+  (reload-foreign-libraries)
+  (run (asset-path "helmet.bin")
+       (asset-path "skybox.bin")
+       (asset-path "indirect.bin")))
 
 
-(defun convert-helmet ()
-  (let ((resources (alien-works-demo.support::parse-gltf
-                    (asset-path "helmet/DamagedHelmet.gltf"))))
-    (apply #'alien-works-demo::save-resources (asset-path "helmet.bin") resources)))
+;; to call from native SDL2 loop, e.g. on android
+(cffi:defcallback %run-alien-works :void ()
+  (print "Callback called")
+  (alien-works:run))
+
+
+(defun alien-works-runner-pointer ()
+  (cffi:pointer-address (cffi:callback %run-alien-works)))
