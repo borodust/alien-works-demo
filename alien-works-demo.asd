@@ -46,3 +46,15 @@
                (:file "converter")
                (:file "banner")
                (:file "demo-support")))
+
+
+(asdf:defsystem :alien-works-demo/bundle
+  :description "Bundle for alien-works demo"
+  :version "0.0.0"
+  :license "MIT"
+  :author "Pavel Korolev"
+  :mailto "dev@borodust.org"
+  :depends-on (#:alien-works-delivery)
+  :serial t
+  :pathname "bundle/"
+  :components ((:file "bundle")))
