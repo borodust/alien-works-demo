@@ -1,0 +1,24 @@
+name: Bundle
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  linux-lts:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check Out Everything
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+      - id: bundle-app
+        name: Bundle Using Alien-Works-Delivery
+        uses: boroactions/alien-works-delivery@v0
+        with:
+          bundle-def-system: alien-works-demo/bundle
+          bundle-name: alien-works-demo
+          bundle-type: appimage
+          lisp: sbcl_ros
+      - name: Check Bundle
+        run: ls -lah ${{ steps.bundle-app.outputs.bundle }}
