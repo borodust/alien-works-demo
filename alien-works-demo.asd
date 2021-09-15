@@ -54,7 +54,7 @@
   :license "MIT"
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
-  :depends-on (#:alien-works-delivery)
+  :depends-on (#:alien-works-demo/app #:alien-works-delivery)
   :serial t
   :pathname "bundle/"
   :components ((:file "bundle")))
