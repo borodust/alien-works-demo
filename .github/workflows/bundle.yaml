@@ -12,6 +12,8 @@ jobs:
         uses: actions/checkout@v2
         with:
           lfs: true
+      - name: Set Output Bundle File
+        run: echo "BUNDLE_FILE=${{ github.workspace }}/alien-works-demo-x86_64.AppImage" >> $GITHUB_ENV
       - id: bundle-app
         name: Bundle Using Alien-Works-Delivery
         uses: boroactions/alien-works-delivery@v0
@@ -19,6 +21,12 @@ jobs:
           bundle-def-system: alien-works-demo/bundle
           bundle-name: alien-works-demo
           bundle-type: appimage
+          bundle-file: ${{ env.BUNDLE_FILE }}
           lisp: sbcl_ros
-      - name: Check Bundle
-        run: ls -lah ${{ steps.bundle-app.outputs.bundle }}
+      - name: Publish Binaries
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            ${{ env.BUNDLE_FILE }}
