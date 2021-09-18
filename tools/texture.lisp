@@ -1,26 +1,26 @@
-(cl:in-package :alien-works-demo.support)
+(cl:in-package :alien-works-demo.tools)
 
 
 (defun load-cubemap (px-path nx-path py-path ny-path pz-path nz-path)
   (let* ((images (loop for path in (list px-path nx-path py-path ny-path pz-path nz-path)
-                       collect (aws:load-image (file-namestring path) path)))
-         (width (aws:image-width (first images)))
-         (height (aws:image-height (first images)))
-         (channels (aws:image-channels (first images)))
+                       collect (awt:load-image (file-namestring path) path)))
+         (width (awt:image-width (first images)))
+         (height (awt:image-height (first images)))
+         (channels (awt:image-channels (first images)))
          (sizes (loop for image in images
-                      unless (and (= (aws:image-width image) width)
-                                  (= (aws:image-height image) height)
-                                  (= (aws:image-channels image) channels))
+                      unless (and (= (awt:image-width image) width)
+                                  (= (awt:image-height image) height)
+                                  (= (awt:image-channels image) channels))
                         do (error "Cubemap face image with wrong dimensions found")
-                      collect (* (aws:image-width image)
-                                 (aws:image-height image)
-                                 (aws:image-channels image))))
+                      collect (* (awt:image-width image)
+                                 (awt:image-height image)
+                                 (awt:image-channels image))))
          (total-size (reduce #'+ sizes))
          (data (let ((data (cffi:foreign-alloc :char :count total-size)))
                  (loop with offset = 0
                        for size in sizes
                        for image in images
-                       do (aw:memcpy (cffi:inc-pointer data offset) (aws:image-data image) size)
+                       do (aw:memcpy (cffi:inc-pointer data offset) (awt:image-data image) size)
                           (incf offset size))
                  data))
          (pixel-buffer (aw:make-pixel-buffer data

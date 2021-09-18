@@ -1,4 +1,4 @@
-(cl:in-package :alien-works-demo.support)
+(cl:in-package :alien-works-demo.tools)
 
 (defparameter *banner-material-source*
 "
@@ -62,7 +62,7 @@ fragment {
 
 
 (defun make-banner-material ()
-  (aws:make-material alien-works-demo::*engine* *banner-material-source*))
+  (awt:make-material alien-works-demo::*engine* *banner-material-source*))
 
 
 (defclass banner ()

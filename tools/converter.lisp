@@ -1,9 +1,9 @@
-(cl:in-package :alien-works-demo.support)
+(cl:in-package :alien-works-demo.tools)
 
 
 (defun parse-material-resource (name source &optional base-path)
   (multiple-value-bind (data size)
-      (aws:parse-material source base-path)
+      (awt:parse-material source base-path)
     (alien-works-demo::make-material-resource name data size)))
 
 
@@ -83,23 +83,23 @@ fragment {
 
 (defun cubemap->resources (name px-image nx-image py-image ny-image pz-image nz-image)
   (let* ((images (list px-image nx-image py-image ny-image pz-image nz-image))
-         (width (aws:image-width (first images)))
-         (height (aws:image-height (first images)))
-         (channels (aws:image-channels (first images)))
+         (width (awt:image-width (first images)))
+         (height (awt:image-height (first images)))
+         (channels (awt:image-channels (first images)))
          (sizes (loop for image in images
-                      unless (and (= (aws:image-width image) width)
-                                  (= (aws:image-height image) height)
-                                  (= (aws:image-channels image) channels))
+                      unless (and (= (awt:image-width image) width)
+                                  (= (awt:image-height image) height)
+                                  (= (awt:image-channels image) channels))
                         do (error "Cubemap face image with wrong dimensions found")
-                      collect (* (aws:image-width image)
-                                 (aws:image-height image)
-                                 (aws:image-channels image))))
+                      collect (* (awt:image-width image)
+                                 (awt:image-height image)
+                                 (awt:image-channels image))))
          (total-size (reduce #'+ sizes))
          (total-data (let ((data (cffi:foreign-alloc :char :count total-size)))
                        (loop with offset = 0
                              for size in sizes
                              for image in images
-                             do (aw:memcpy (cffi:inc-pointer data offset) (aws:image-data image) size)
+                             do (aw:memcpy (cffi:inc-pointer data offset) (awt:image-data image) size)
                                 (incf offset size))
                        data))
          (pixel-buffer-name (format nil "pb:~A" name)))
@@ -120,15 +120,15 @@ fragment {
 
 
 (defun image->resources (image)
-  (let* ((name (aws:image-name image))
-         (width (aws:image-width image))
-         (height (aws:image-height image))
-         (channels (aws:image-channels image))
+  (let* ((name (awt:image-name image))
+         (width (awt:image-width image))
+         (height (awt:image-height image))
+         (channels (awt:image-channels image))
          (size (* width height channels))
          (pixel-buffer-name (format nil "pb:~A" name)))
     (list (alien-works-demo::make-pixel-buffer-resource pixel-buffer-name
                                                         `((:ubyte ,channels))
-                                                        (aws:image-data image)
+                                                        (awt:image-data image)
                                                         size)
           (alien-works-demo::make-texture-resource name
                                                    width
@@ -144,16 +144,16 @@ fragment {
 
 (defun vertex-buffer->resources (vbuf name)
   (list (alien-works-demo::make-vertex-buffer-resource name
-                                     (aws:buffer-descriptor vbuf)
-                                     (aws:buffer-data vbuf)
-                                     (aws:buffer-size vbuf))))
+                                     (awt:buffer-descriptor vbuf)
+                                     (awt:buffer-data vbuf)
+                                     (awt:buffer-size vbuf))))
 
 
 (defun index-buffer->resources (ibuf name)
   (list (alien-works-demo::make-index-buffer-resource name
-                                                      (aws:buffer-descriptor ibuf)
-                                                      (aws:buffer-data ibuf)
-                                                      (aws:buffer-size ibuf))))
+                                                      (awt:buffer-descriptor ibuf)
+                                                      (awt:buffer-data ibuf)
+                                                      (awt:buffer-size ibuf))))
 
 
 (defun parse-gltf (source-path)
@@ -167,12 +167,12 @@ fragment {
                      else
                        do (push resource resources)))
              (texture-name (mesh kind num)
-               (alexandria:when-let ((tex (aws:material-texture (aws:mesh-material mesh) kind num)))
-                 (aws:texture-name tex)))
+               (alexandria:when-let ((tex (awt:material-texture (awt:mesh-material mesh) kind num)))
+                 (awt:texture-name tex)))
              (texture-with-alpha-p (mesh kind num)
                (alexandria:when-let ((name (texture-name mesh kind num)))
                  (alexandria:when-let ((image (gethash name image-table)))
-                   (= 4 (aws:image-channels image)))))
+                   (= 4 (awt:image-channels image)))))
              (%add-material-resource (transparent samplers)
                (multiple-value-bind (material-source material-name)
                    (apply #'format-gltf-material-source :transparent transparent samplers)
@@ -197,14 +197,14 @@ fragment {
                          finally (return (values samplers config)))
                  (let ((transparent-p (texture-with-alpha-p mesh :diffuse 0)))
                    (values (%add-material-resource transparent-p samplers) config)))))
-      (let ((scene (aws:parse-scene source-path)))
-        (loop for image in (aws:scene-images scene)
+      (let ((scene (awt:parse-scene source-path)))
+        (loop for image in (awt:scene-images scene)
               do (add-resources (image->resources image))
-                 (setf (gethash (aws:image-name image) image-table) image))
-        (loop for mesh in (aws:scene-meshes scene)
+                 (setf (gethash (awt:image-name image) image-table) image))
+        (loop for mesh in (awt:scene-meshes scene)
               for mesh-idx from 0
-              for vbuf = (aws:mesh-vertex-buffer mesh)
-              for ibufs = (aws:mesh-index-buffers mesh)
+              for vbuf = (awt:mesh-vertex-buffer mesh)
+              for ibufs = (awt:mesh-index-buffers mesh)
               for vbuf-name = (format nil "mesh.~A.vb" mesh-idx)
               for converted-vbuf = (vertex-buffer->resources vbuf vbuf-name)
               for converted-ibufs = (loop for ibuf in ibufs
@@ -231,5 +231,5 @@ fragment {
 (defun convert-cubemap (target px-path nx-path py-path ny-path pz-path nz-path)
   (let ((rsc (apply #'cubemap->resources (file-namestring target)
                     (loop for path in (list px-path nx-path py-path ny-path pz-path nz-path)
-                          collect (aws:load-image (file-namestring path) path)))))
+                          collect (awt:load-image (file-namestring path) path)))))
     (apply #'alien-works-demo::save-resources target rsc)))

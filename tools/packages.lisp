@@ -1,6 +1,6 @@
-(cl:defpackage :alien-works-demo.support
+(cl:defpackage :alien-works-demo.tools
   (:local-nicknames (:aw :alien-works)
-                    (:aws :alien-works.support)
+                    (:awt :alien-works.tools)
                     (:cref :cffi-c-ref))
   (:use :cl)
   (:export #:load-cubemap
