@@ -9,6 +9,7 @@ this repository.
 
 * `X86_64` `Linux`-based system equal or newer than Ubuntu 18.04
 * OpenGL 4.1+
+* CPU with AVX support (since around 2011)
 
 ## Installation
 
@@ -38,8 +39,8 @@ firejail --profile=steam --appimage /path/to/alien-works-demo-x86_64.AppImage
 ## Troubleshooting
 
 #### Quicklisp
-I'm taking much care of my alien-works quicklisp dist, so if you encountering
-weird errors about missing packages, just reinstall the dist:
+I'm not taking much care of my alien-works quicklisp dist, so if you
+encountering weird errors about missing packages, just reinstall the dist:
 
 ```lisp
 (ql-dist:install-dist "http://dist.borodu.st/alien-works.txt" :prompt nil :replace t)
