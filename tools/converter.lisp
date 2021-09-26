@@ -233,3 +233,10 @@ fragment {
                     (loop for path in (list px-path nx-path py-path ny-path pz-path nz-path)
                           collect (awt:load-image (file-namestring path) path)))))
     (apply #'alien-works-demo::save-resources target rsc)))
+
+
+(defun pcm->resources (name pcm-s16-stereo-stream)
+  (list (alien-works-demo::make-audio-resource
+         name
+         (flex:with-output-to-sequence (out :element-type '(unsigned-byte 8))
+           (aw:encode-audio pcm-s16-stereo-stream out)))))

@@ -73,7 +73,15 @@
     (apply #'alien-works-demo::save-resources (asset-path "indirect.bin") resources)))
 
 
+(defun convert-audio ()
+  (alexandria:with-input-from-file (in (asset-path "src/audio/sample.raw")
+                                       :element-type '(signed-byte 16))
+    (apply #'alien-works-demo::save-resources (asset-path "audio.bin")
+           (alien-works-demo.tools::pcm->resources "booo" in))))
+
+
 (defun update-assets ()
   (convert-helmet)
   (convert-skybox)
-  (convert-indirect))
+  (convert-indirect)
+  (convert-audio))

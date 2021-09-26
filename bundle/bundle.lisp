@@ -8,8 +8,7 @@
 (awd:defbundle :alien-works-demo
   :system :alien-works-demo/app
   :entry-point (:alien-works :run)
-  :assets ((:group (#:linux :for :linux)
-                   (:library "libstdc++.so"))
-           (:file (:system "assets/helmet.bin"))
+  :assets ((:file (:system "assets/helmet.bin"))
            (:file (:system "assets/skybox.bin"))
-           (:file (:system "assets/indirect.bin"))))
+           (:file (:system "assets/indirect.bin"))
+           (:file (:system "assets/audio.bin"))))

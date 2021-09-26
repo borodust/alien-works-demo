@@ -6,10 +6,12 @@
 (defvar *banner* nil)
 (defvar *sun* nil)
 (defvar *lights* nil)
+(defvar *booo* nil)
 
 (defvar *scene* nil)
 (defvar *environment* nil)
 (defvar *skybox* nil)
+(defvar *audio* nil)
 
 
 (defun shout (control &rest args)

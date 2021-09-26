@@ -9,7 +9,6 @@
 ;;;
 ;;; DEMO
 ;;;
-
 (defun load-scene ()
   (let* ((resources (load-resources *scene*))
          (forged (forge-resources resources))
@@ -21,12 +20,20 @@
              (push renderable *renderables*))))
 
 
+(defun load-audio ()
+  (let* ((resources (load-resources *audio*))
+         (forged-audio (first (forge-resources resources))))
+    (setf *booo* (third forged-audio))))
+
+
 (defun init-loop ()
   (setf *renderables* nil
         *sun* nil
-        *lights* nil)
+        *lights* nil
+        *booo* nil)
 
   (load-scene)
+  (load-audio)
 
   (aw:with-vec3 (dir :y -1)
     (setf *sun* (add-sun dir)))
@@ -38,7 +45,12 @@
     (let ((cubemap (%load-cubemap *skybox*)))
       (setf (aw:skybox *engine*) (aw:make-cubemap-skybox *engine* cubemap)))
     (let ((cubemap (%load-cubemap *environment*)))
-      (add-indirect-light cubemap))))
+      (add-indirect-light cubemap)))
+
+  (bt:make-thread
+   (lambda ()
+     (sleep 0.5)
+     (aw:play-audio *booo*))))
 
 
 (defun destroy-loop ()
@@ -122,10 +134,11 @@
 
 (defvar *surface* nil)
 
-(defun run (scene skybox environment)
+(defun run (scene skybox environment audio)
   (setf *scene* scene
         *skybox* skybox
-        *environment* environment)
+        *environment* environment
+        *audio* audio)
   (handler-bind ((serious-condition (lambda (c)
                                       (format *error-output* "~%Unhandled serious condition:~%")
                                       (dissect:present c *error-output*))))
@@ -135,19 +148,22 @@
         (aw:with-window (win :context context)
           (let* ((width (aw:window-width win))
                  (height (aw:window-height win)))
-            (print "Initializing engine")
-            (aw:with-engine (engine :surface (aw:window-surface win)
-                                    :shared-context context
-                                    :width width
-                                    :height height)
-              (print "Engine up")
-              (let* ((*engine* engine))
-                (init-loop)
-                (unwind-protect
-                     (catch 'quit
-                       (shout "Looping")
-                       (loop (handle-loop)))
-                  (destroy-loop))))))))))
+            (shout "Initializing audio")
+            (aw:with-audio ()
+              (shout "Initializing renderer")
+              (aw:with-engine (engine :surface (aw:window-surface win)
+                                      :shared-context context
+                                      :width width
+                                      :height height)
+                (shout "Alien-Works ready")
+                (let* ((*engine* engine))
+                  (init-loop)
+                  (shout "Demo ready")
+                  (unwind-protect
+                       (catch 'quit
+                         (shout "Looping")
+                         (loop (handle-loop)))
+                    (destroy-loop)))))))))))
 
 
 (defun asset-path (asset-name)
@@ -163,7 +179,8 @@
   (reload-foreign-libraries)
   (run (asset-path "helmet.bin")
        (asset-path "skybox.bin")
-       (asset-path "indirect.bin")))
+       (asset-path "indirect.bin")
+       (asset-path "audio.bin")))
 
 
 ;; to call from native SDL2 loop, e.g. on android

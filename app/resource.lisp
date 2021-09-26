@@ -421,3 +421,44 @@
           for name = (resource-name resource)
           for forged = (list (resource-kind resource) name (forge-resource resource) resource)
           collect (setf (gethash name *resource-table*) forged))))
+
+;;;
+;;; AUDIO RESOURCE
+;;;
+(defclass audio-resource (resource)
+  ((encoded :initarg :encoded :initform (error ":encoded missing")))
+  (:default-initargs :kind :audio))
+
+
+(defun make-audio-resource (name encoded)
+  (make-instance 'audio-resource
+                 :name name
+                 :encoded (static-vectors:make-static-vector
+                           (length encoded)
+                           :element-type '(unsigned-byte 8)
+                           :initial-contents encoded)))
+
+
+(defmethod encode-resource ((resource audio-resource))
+  (with-slots (encoded) resource
+    (values nil
+            (static-vectors:static-vector-pointer encoded)
+            (length encoded))))
+
+
+(defmethod decode-resource ((kind (eql :audio)) name descriptor data-ptr data-size)
+  (declare (ignore kind descriptor))
+  (let ((data (static-vectors:make-static-vector data-size
+                                                 :element-type '(unsigned-byte 8))))
+    (aw:memcpy (static-vectors:static-vector-pointer data)
+               data-ptr
+               data-size)
+    (make-instance 'audio-resource
+                   :name name
+                   :encoded data)))
+
+
+(defmethod forge-resource ((resource audio-resource))
+  (with-slots (encoded) resource
+    (flex:with-input-from-sequence (in encoded)
+      (aw:decode-audio in))))
