@@ -28,6 +28,7 @@
                (:file "utils")
                (:file "light")
                (:file "resource")
+               (:file "tools")
                (:file "demo")))
 
 
@@ -45,7 +46,8 @@
                (:file "texture")
                (:file "converter")
                (:file "banner")
-               (:file "demo-support")))
+               (:file "demo-support")
+               (:file "ui")))
 
 
 (asdf:defsystem :alien-works-demo/bundle

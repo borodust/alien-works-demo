@@ -26,6 +26,13 @@
     (setf *booo* (third forged-audio))))
 
 
+(defun play-boo ()
+  (bt:make-thread
+   (lambda ()
+     (sleep 0.5)
+     (aw:play-audio *booo*))))
+
+
 (defun init-loop ()
   (setf *renderables* nil
         *sun* nil
@@ -46,11 +53,7 @@
       (setf (aw:skybox *engine*) (aw:make-cubemap-skybox *engine* cubemap)))
     (let ((cubemap (%load-cubemap *environment*)))
       (add-indirect-light cubemap)))
-
-  (bt:make-thread
-   (lambda ()
-     (sleep 0.5)
-     (aw:play-audio *booo*))))
+  (play-boo))
 
 
 (defun destroy-loop ()
@@ -63,8 +66,10 @@
 
 
 (defun handle-event (event)
-  (when (and event (eq (aw:event-type event) :quit))
-    (throw 'quit nil)))
+  (when event
+    (case (aw:event-type event)
+      (:quit (throw 'quit nil)))
+    (handle-tool-event *tools* event)))
 
 
 (defun real-time-seconds ()
@@ -104,6 +109,8 @@
            (handle-event event)))
     (aw:handle-events #'%handle-event))
 
+  (update-tools *tools* 0.015)
+
   (with-transform (transform
                    (:rotation (/ (real-time-seconds) 5) :x 0 :y 1 :z 0)
                    (:rotation (/ (real-time-seconds) 10) :x 0 :y 1 :z 1)
@@ -128,7 +135,9 @@
     (when *banner*
       (aw:transform-entity *engine* *banner* transform)))
 
-  (aw:render-frame *engine*)
+  (aw:in-frame (*engine*)
+    (render-tools *tools*))
+
   (sleep 0.015))
 
 
@@ -157,13 +166,14 @@
                                       :height height)
                 (shout "Alien-Works ready")
                 (let* ((*engine* engine))
-                  (init-loop)
-                  (shout "Demo ready")
-                  (unwind-protect
-                       (catch 'quit
-                         (shout "Looping")
-                         (loop (handle-loop)))
-                    (destroy-loop)))))))))))
+                  (with-tools (:alien-works-demo :engine engine)
+                    (init-loop)
+                    (shout "Demo ready")
+                    (unwind-protect
+                         (catch 'quit
+                           (shout "Looping")
+                           (loop (handle-loop)))
+                      (destroy-loop))))))))))))
 
 
 (defun asset-path (asset-name)
