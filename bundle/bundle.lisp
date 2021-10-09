@@ -11,4 +11,5 @@
   :assets ((:file (:system "assets/helmet.bin"))
            (:file (:system "assets/skybox.bin"))
            (:file (:system "assets/indirect.bin"))
-           (:file (:system "assets/audio.bin"))))
+           (:file (:system "assets/audio.bin"))
+           (:file (:system "assets/gamecontrollerdb.txt"))))

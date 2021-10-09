@@ -1,5 +1,6 @@
 (cl:defpackage :alien-works-demo.tools
-  (:local-nicknames (:aw :alien-works)
+  (:local-nicknames (:a :alexandria)
+                    (:aw :alien-works)
                     (:awt :alien-works.tools)
                     (:cref :cffi-c-ref))
   (:use :cl)

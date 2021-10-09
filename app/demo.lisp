@@ -143,7 +143,7 @@
 
 (defvar *surface* nil)
 
-(defun run (scene skybox environment audio)
+(defun run (scene skybox environment audio game-controller-db)
   (setf *scene* scene
         *skybox* skybox
         *environment* environment
@@ -166,13 +166,20 @@
                                       :height height)
                 (shout "Alien-Works ready")
                 (let* ((*engine* engine))
-                  (with-tools (:alien-works-demo :engine engine)
+                  (with-tools (:alien-works-demo :engine engine
+                                                 :controller-db-path game-controller-db)
                     (init-loop)
                     (shout "Demo ready")
                     (unwind-protect
                          (catch 'quit
                            (shout "Looping")
-                           (loop (handle-loop)))
+                           (loop
+                             (tagbody start
+                                (restart-case
+                                    (handle-loop)
+                                  (restart-loop ()
+                                    :report "Restart alien-works demo loop"
+                                    (go start))))))
                       (destroy-loop))))))))))))
 
 
@@ -190,7 +197,8 @@
   (run (asset-path "helmet.bin")
        (asset-path "skybox.bin")
        (asset-path "indirect.bin")
-       (asset-path "audio.bin")))
+       (asset-path "audio.bin")
+       (asset-path "gamecontrollerdb.txt")))
 
 
 ;; to call from native SDL2 loop, e.g. on android
