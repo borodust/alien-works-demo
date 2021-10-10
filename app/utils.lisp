@@ -7,6 +7,7 @@
 (defvar *sun* nil)
 (defvar *lights* nil)
 (defvar *booo* nil)
+(defvar *music* nil)
 
 (defvar *scene* nil)
 (defvar *environment* nil)

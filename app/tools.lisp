@@ -10,6 +10,11 @@
     nil))
 
 
+(defgeneric init-tools (tools)
+  (:method (tools)
+    (declare (ignore tools))))
+
+
 (defgeneric destroy-tools (tools)
   (:method (tools)
     (declare (ignore tools))))

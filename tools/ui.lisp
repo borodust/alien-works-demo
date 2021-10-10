@@ -5,6 +5,13 @@
                   *tools*))
 
 
+(defun format-vec2 (vec2)
+  (format nil "(~,2F, ~,2F)" (aw:vec2 vec2 0) (aw:vec2 vec2 1)))
+
+
+(defun format-vec3 (vec3)
+  (format nil "(~,2F, ~,2F, ~,2F)" (aw:vec3 vec3 0) (aw:vec3 vec3 1) (aw:vec3 vec3 2)))
+
 
 (defclass demo-tools ()
   ((ui :initarg :ui)
@@ -12,19 +19,30 @@
    (controller-table :initform (make-hash-table :test 'equal))
    (button-bag :initform nil)
    (mouse-state :initform (aw:make-mouse-state))
+   (booo-source)
+   (music-source)
    (last-time-delta :initform 0)))
 
 
 (defmethod alien-works-demo::make-tools ((name (eql :alien-works-demo)) &key engine controller-db-path)
-  (aw:with-open-host-file (file controller-db-path)
+  (aw:with-open-host-file (file controller-db-path )
     (aw:load-gamepad-mappings-from-host-file file))
+
   (make-instance 'demo-tools
                  :ui (awt:make-ui engine)))
 
 
+(defmethod alien-works-demo::init-tools ((tools demo-tools))
+  (with-slots (booo-source music-source) tools
+    (setf booo-source (aw:make-audio-source alien-works-demo::*booo*)
+          music-source (aw:make-audio-source alien-works-demo::*music*))))
+
+
 (defmethod alien-works-demo::destroy-tools ((tools demo-tools))
-  (with-slots (ui) tools
-    (awt:destroy-ui ui)))
+  (with-slots (ui booo-source music-source) tools
+    (awt:destroy-ui ui)
+    (aw:destroy-audio-source booo-source)
+    (aw:destroy-audio-source music-source)))
 
 
 (defmethod alien-works-demo::call-with-tools ((this demo-tools) body)
@@ -34,14 +52,17 @@
 
 
 (defmethod alien-works-demo::handle-tool-event ((this demo-tools) event)
-  (with-slots (button-bag) this
+  (with-slots (button-bag windows) this
     (awt:handle-ui-event *ui* event)
     (flet ((%add (btn)
              (pushnew btn button-bag :test #'equal))
            (%del (btn)
              (a:deletef button-bag btn :test #'equal)))
       (case (aw:event-type event)
-        (:keyboard-button-down (%add (aw:event-key-scan-code event)))
+        (:keyboard-button-down
+         (when (eq :escape (aw:event-key-scan-code event))
+           (pushnew :debug windows))
+         (%add (aw:event-key-scan-code event)))
         (:keyboard-button-up (%del (aw:event-key-scan-code event)))
         (:mouse-button-down (%add (aw:event-mouse-button event)))
         (:mouse-button-up (%del (aw:event-mouse-button event)))
@@ -71,30 +92,30 @@
 
 
 (defun display-controller-panel (controller)
-  (awt:label "Power Level:")
+  (awt:text "Power Level:")
   (awt:same-line)
-  (awt:label (string (aw:game-controller-power-level controller)))
+  (awt:text (string (aw:game-controller-power-level controller)))
   (loop for button-id below (aw:game-controller-button-count controller)
         do (awt:checkbox (format nil "Button #~A" button-id) (aw:game-controller-button-pressed-p controller button-id)))
   (loop for axis-id below (aw:game-controller-axes-count controller)
-        do (awt:label "Axis #~A" (format nil "~A" axis-id))
+        do (awt:text "Axis #~A" (format nil "~A" axis-id))
            (awt:progress-bar (/ (1+ (aw:game-controller-axis-float-value controller axis-id)) 2)))
   (loop for hat-id below (aw:game-controller-hat-count controller)
-        do (awt:label "Hat #~A:" (format nil "~A" hat-id))
+        do (awt:text "Hat #~A:" (format nil "~A" hat-id))
            (awt:same-line)
-           (awt:label (string (aw:game-controller-hat-value controller hat-id))))
+           (awt:text (string (aw:game-controller-hat-value controller hat-id))))
   (aw:with-vec2 (ball-pos)
     (loop for ball-id below (aw:game-controller-ball-count controller)
           do (aw:game-controller-ball-value controller ball-id ball-pos)
-             (awt:label "Ball #~A:" (format nil "~A" ball-id))
+             (awt:text "Ball #~A:" (format nil "~A" ball-id))
              (awt:same-line)
-             (awt:label (format nil "(~A, ~A)" (aw:vec2 ball-pos 0) (aw:vec2 ball-pos 1))))))
+             (awt:text (format-vec2 ball-pos)))))
 
 
 (defun display-gamepad-panel (gamepad)
-  (awt:label "Power Level:")
+  (awt:text "Power Level:")
   (awt:same-line)
-  (awt:label (string (aw:gamepad-power-level gamepad)))
+  (awt:text (string (aw:gamepad-power-level gamepad)))
   (when (aw:gamepad-haptic-p gamepad)
     (when (awt:button "Rumble")
       (bt:make-thread
@@ -114,10 +135,10 @@
                         :paddle1 :paddle2 :paddle3 :paddle4)
         do (awt:checkbox (string button) (aw:gamepad-button-pressed-p gamepad button)))
   (loop for stick in '(:left-x :left-y :right-x :right-y)
-        do (awt:label (string stick))
+        do (awt:text (string stick))
            (awt:progress-bar (/ (1+ (aw:gamepad-axis-float-value gamepad stick)) 2)))
   (loop for trigger in '(:trigger-left :trigger-right)
-        do (awt:label (string trigger))
+        do (awt:text (string trigger))
            (awt:progress-bar (aw:gamepad-axis-float-value gamepad trigger))))
 
 
@@ -142,18 +163,160 @@
 
 (defun display-input-section ()
   (with-slots (mouse-state button-bag) *tools*
-    (awt:label "Mouse Position:")
+    (awt:text "Mouse Position:")
     (awt:same-line)
-    (awt:label (format nil "(~A, ~A)" (aw:mouse-state-x mouse-state) (aw:mouse-state-y mouse-state)))
+    (awt:text (format nil "(~A, ~A)" (aw:mouse-state-x mouse-state) (aw:mouse-state-y mouse-state)))
 
-    (awt:label "Pressed Buttons:")
+    (awt:text "Pressed Buttons:")
     (awt:same-line)
-    (awt:label (format nil "~{~A~^, ~}" button-bag))))
+    (awt:text (format nil "~{~A~^, ~}" button-bag))))
+
+
+(defun display-audio-source (source)
+  (when (awt:button "Play")
+    (aw:play-audio-source source))
+  (awt:same-line)
+  (when (awt:button "Pause")
+    (aw:pause-audio-source source))
+  (awt:same-line)
+  (when (awt:button "Stop")
+    (aw:stop-audio-source source))
+
+  (awt:text "State:")
+  (awt:same-line)
+  (awt:text (string (aw:audio-source-state source)))
+
+  (awt:text "Offset:")
+  (awt:same-line)
+  (awt:text (format nil "~,1F seconds" (aw:audio-source-offset source)))
+
+  (awt:text "Reference Distance:")
+  (awt:same-line)
+  (multiple-value-bind (new-value changed-p)
+      (awt:float-input "##srdistance" (aw:audio-source-reference-distance source))
+    (when changed-p
+      (setf (aw:audio-source-reference-distance source) new-value)))
+
+  (awt:text "Rolloff:")
+  (awt:same-line)
+  (multiple-value-bind (new-value changed-p)
+      (awt:float-input "##srolloff" (aw:audio-source-rolloff source) :step 0.01 :step-fast 0.1)
+    (when changed-p
+      (setf (aw:audio-source-rolloff source) new-value)))
+
+
+  (awt:text "Max Distance:")
+  (awt:same-line)
+  (multiple-value-bind (new-value changed-p)
+      (awt:float-input "##smdistance" (aw:audio-source-max-distance source))
+    (when changed-p
+      (setf (aw:audio-source-max-distance source) new-value)))
+
+  (awt:text "Gain:")
+  (multiple-value-bind (new-value changed-p) (awt:float-slider "##sgain" (aw:audio-source-gain source))
+    (when changed-p
+      (setf (aw:audio-source-gain source) new-value)))
+  (awt:text "Pitch:")
+  (multiple-value-bind (new-value changed-p) (awt:float-slider "##spitch" (aw:audio-source-pitch source) :max 2)
+    (when changed-p
+      (setf (aw:audio-source-pitch source) new-value)))
+
+  (aw:with-vec3* (vec)
+    (awt:text "Position:")
+    (awt:same-line)
+    (aw:audio-source-position source vec)
+    (awt:text (format-vec3 vec))
+    (awt:same-line)
+    (awt:button "Drag##pos")
+    (when (awt:item-active-p)
+      (aw:with-vec2 (pos)
+        (awt:mouse-drag-delta :left pos)
+        (setf (aw:vec3 vec 0) (aw:vec2 pos 0)
+              (aw:vec3 vec 1) (aw:vec2 pos 1)))
+      (setf (aw:audio-source-position source) vec))
+    (awt:same-line)
+    (when (awt:button "Reset##pos")
+      (setf (aw:vec3 vec 0) 0
+            (aw:vec3 vec 1) 0
+            (aw:vec3 vec 2) 0)
+      (setf (aw:audio-source-position source) vec))
+
+    (awt:text "Velocity:")
+    (awt:same-line)
+    (aw:audio-source-velocity source vec)
+    (awt:text (format-vec3 vec))
+    (awt:same-line)
+    (awt:button "Drag##vel")
+    (when (awt:item-active-p)
+      (aw:with-vec2 (vel)
+        (awt:mouse-drag-delta :left vel)
+        (setf (aw:vec3 vec 0) (aw:vec2 vel 0)
+              (aw:vec3 vec 1) (aw:vec2 vel 1)))
+      (setf (aw:audio-source-velocity source) vec))
+    (awt:same-line)
+    (when (awt:button "Reset##vel")
+      (setf (aw:vec3 vec 0) 0
+            (aw:vec3 vec 1) 0
+            (aw:vec3 vec 2) 0)
+      (setf (aw:audio-source-velocity source) vec))
+
+    (awt:text "Direction:")
+    (awt:same-line)
+    (aw:audio-source-direction source vec)
+    (awt:text (format-vec3 vec))
+    (awt:same-line)
+    (awt:button "Drag##dir")
+    (when (awt:item-active-p)
+      (aw:with-vec2 (dir)
+        (awt:mouse-drag-delta :left dir)
+        (setf (aw:vec3 vec 0) (aw:vec2 dir 0)
+              (aw:vec3 vec 1) (aw:vec2 dir 1)))
+      (setf (aw:audio-source-direction source) vec))
+    (awt:same-line)
+    (when (awt:button "Reset##dir")
+      (setf (aw:vec3 vec 0) 0
+            (aw:vec3 vec 1) 0
+            (aw:vec3 vec 2) 0)
+      (setf (aw:audio-source-direction source) vec))))
 
 
 (defun display-audio-section ()
-  (when (awt:button "Play")
-    (alien-works-demo::play-boo)))
+  (with-slots (booo-source music-source) *tools*
+    (awt:with-tree-node ("Devices")
+      (aw:do-output-audio-devices (device-name)
+        (awt:selectable device-name)))
+    (awt:with-tree-node ("Listener")
+      (awt:text "Gain:")
+      (multiple-value-bind (new-value changed-p) (awt:float-slider "##lgain" (aw:audio-listener-gain))
+        (when changed-p
+          (setf (aw:audio-listener-gain) new-value)))
+      (aw:with-vec3* (vec0 vec1)
+        (awt:text "Position:")
+        (awt:same-line)
+        (aw:audio-listener-position vec0)
+        (awt:text (format-vec3 vec0))
+
+        (awt:text "Velocity:")
+        (awt:same-line)
+        (aw:audio-listener-velocity vec0)
+        (awt:text (format-vec3 vec0))
+
+        (awt:text "Orientation:")
+        (aw:audio-listener-orientation vec0 vec1)
+        (awt:indent)
+        (awt:text (format nil "At: ~A" (format-vec3 vec0)))
+        (awt:text (format nil "Up: ~A" (format-vec3 vec1)))
+        (awt:unindent)))
+
+    (awt:with-tree-node ("Sources")
+      (when (awt:selectable "Booo")
+        (request-tool-window (list :source "booo")))
+      (with-tool-window ((list :source "booo") "Audio Source: Booo")
+        (display-audio-source booo-source))
+      (when (awt:selectable "Theme")
+        (request-tool-window (list :source "theme")))
+      (with-tool-window ((list :source "theme") "Audio Source: Theme")
+        (display-audio-source music-source)))))
 
 
 (defun display-game-controllers-section ()

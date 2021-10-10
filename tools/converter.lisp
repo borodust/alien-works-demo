@@ -235,8 +235,8 @@ fragment {
     (apply #'alien-works-demo::save-resources target rsc)))
 
 
-(defun pcm->resources (name pcm-s16-stereo-stream)
+(defun pcm->resources (name pcm-s16-mono-stream)
   (list (alien-works-demo::make-audio-resource
          name
          (flex:with-output-to-sequence (out :element-type '(unsigned-byte 8))
-           (aw:encode-audio pcm-s16-stereo-stream out)))))
+           (aw:encode-audio pcm-s16-mono-stream out)))))

@@ -21,16 +21,21 @@
 
 
 (defun load-audio ()
-  (let* ((resources (load-resources *audio*))
-         (forged-audio (first (forge-resources resources))))
-    (setf *booo* (third forged-audio))))
+  (let* ((resources (load-resources *audio*)))
+    (loop for (nil name rsc) in (forge-resources resources)
+          do (a:switch (name :test #'string=)
+               ("booo" (setf *booo* rsc))
+               ("theme" (setf *music* rsc))))))
 
 
 (defun play-boo ()
   (bt:make-thread
-   (lambda ()
-     (sleep 0.5)
-     (aw:play-audio *booo*))))
+   (lambda () (aw:play-audio *booo*))))
+
+
+(defun play-music ()
+  (bt:make-thread
+   (lambda () (aw:play-audio *music*))))
 
 
 (defun init-loop ()
@@ -53,7 +58,7 @@
       (setf (aw:skybox *engine*) (aw:make-cubemap-skybox *engine* cubemap)))
     (let ((cubemap (%load-cubemap *environment*)))
       (add-indirect-light cubemap)))
-  (play-boo))
+  (init-tools *tools*))
 
 
 (defun destroy-loop ()

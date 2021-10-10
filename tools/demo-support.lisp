@@ -73,11 +73,31 @@
     (apply #'alien-works-demo::save-resources (asset-path "indirect.bin") resources)))
 
 
+(defun convert-audio-with-ffmpeg (dst src)
+  (uiop:run-program `("ffmpeg" "-y"
+                      "-i" ,(namestring src)
+                      "-f" "s16le"
+                      "-ar" "48000"
+                      "-ac" "1"
+                      "-acodec" "pcm_s16le"
+                      ,(namestring dst))
+                    :output nil
+                    :error-output nil))
+
+
 (defun convert-audio ()
-  (alexandria:with-input-from-file (in (asset-path "src/audio/sample.raw")
-                                       :element-type '(signed-byte 16))
+  (uiop:with-temporary-file (:pathname tmpfile)
     (apply #'alien-works-demo::save-resources (asset-path "audio.bin")
-           (alien-works-demo.tools::pcm->resources "booo" in))))
+           (nconc
+            (progn
+              (convert-audio-with-ffmpeg tmpfile
+                                         (asset-path "src/audio/53933__meutecee__trumpethit03.wav"))
+              (alexandria:with-input-from-file (in tmpfile :element-type '(signed-byte 16))
+                (alien-works-demo.tools::pcm->resources "booo" in)))
+            (progn
+              (convert-audio-with-ffmpeg tmpfile (asset-path "src/audio/kai_engel_moonlight_reprise.mp3"))
+              (alexandria:with-input-from-file (in tmpfile :element-type '(signed-byte 16))
+                (alien-works-demo.tools::pcm->resources "theme" in)))))))
 
 
 (defun update-assets ()
