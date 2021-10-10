@@ -10,9 +10,8 @@
   ((ui :initarg :ui)
    (windows :initform (list :debug))
    (controller-table :initform (make-hash-table :test 'equal))
-   (keyboard-button-bag :initform nil)
-   (controller-button-bag :initform nil)
-   (mouse-button-bag :initform nil)
+   (button-bag :initform nil)
+   (mouse-state :initform (aw:make-mouse-state))
    (last-time-delta :initform 0)))
 
 
@@ -35,13 +34,40 @@
 
 
 (defmethod alien-works-demo::handle-tool-event ((this demo-tools) event)
-  (awt:handle-ui-event *ui* event))
+  (with-slots (button-bag) this
+    (awt:handle-ui-event *ui* event)
+    (flet ((%add (btn)
+             (pushnew btn button-bag :test #'equal))
+           (%del (btn)
+             (a:deletef button-bag btn :test #'equal)))
+      (case (aw:event-type event)
+        (:keyboard-button-down (%add (aw:event-key-scan-code event)))
+        (:keyboard-button-up (%del (aw:event-key-scan-code event)))
+        (:mouse-button-down (%add (aw:event-mouse-button event)))
+        (:mouse-button-up (%del (aw:event-mouse-button event)))
+        ((:game-controller-button-down :gamepad-button-down)
+         (%add (if (eq (aw:event-type event) :game-controller-button-down)
+                   (list :controller
+                         (aw:event-game-controller-id event)
+                         (aw:event-game-controller-button event))
+                   (list :gamepad
+                         (aw:event-gamepad-id event)
+                         (aw:event-gamepad-button event)))))
+        ((:game-controller-button-up :gamepad-button-up)
+         (%del (if (eq (aw:event-type event) :game-controller-button-up)
+                   (list :controller
+                         (aw:event-game-controller-id event)
+                         (aw:event-game-controller-button event))
+                   (list :gamepad
+                         (aw:event-gamepad-id event)
+                         (aw:event-gamepad-button event)))))))))
 
 
 (defmethod alien-works-demo::update-tools (tools time-delta)
-  (with-slots (last-time-delta) tools
-    (setf last-time-delta time-delta))
-  (awt:update-ui-input *ui*))
+  (with-slots (last-time-delta mouse-state) tools
+    (setf last-time-delta time-delta)
+    (aw:mouse-state mouse-state))
+    (awt:update-ui-input *ui*))
 
 
 (defun display-controller-panel (controller)
@@ -82,15 +108,15 @@
              (aw:release-haptic-device haptic)))))))
   (loop for button in '(:a :b :x :y
                         :back :guide :start
-                        :leftstick :rightstick :leftshoulder :rightshoulder
+                        :left-stick :right-stick :left-shoulder :right-shoulder
                         :dpad-up :dpad-down :dpad-left :dpad-right
                         :misc1 :touchpad
                         :paddle1 :paddle2 :paddle3 :paddle4)
         do (awt:checkbox (string button) (aw:gamepad-button-pressed-p gamepad button)))
-  (loop for stick in '(:leftx :lefty :rightx :righty)
+  (loop for stick in '(:left-x :left-y :right-x :right-y)
         do (awt:label (string stick))
            (awt:progress-bar (/ (1+ (aw:gamepad-axis-float-value gamepad stick)) 2)))
-  (loop for trigger in '(:triggerleft :triggerright)
+  (loop for trigger in '(:trigger-left :trigger-right)
         do (awt:label (string trigger))
            (awt:progress-bar (aw:gamepad-axis-float-value gamepad trigger))))
 
@@ -112,6 +138,17 @@
                                             `((funcall ,on-close)))
                                         (a:deletef windows ,panel-id :test #'equal)))
              ,@body))))))
+
+
+(defun display-input-section ()
+  (with-slots (mouse-state button-bag) *tools*
+    (awt:label "Mouse Position:")
+    (awt:same-line)
+    (awt:label (format nil "(~A, ~A)" (aw:mouse-state-x mouse-state) (aw:mouse-state-y mouse-state)))
+
+    (awt:label "Pressed Buttons:")
+    (awt:same-line)
+    (awt:label (format nil "~{~A~^, ~}" button-bag))))
 
 
 (defun display-audio-section ()
@@ -157,6 +194,9 @@
 
 
 (defun display-debug-panel ()
+  (when (awt:collapsing-header "Input")
+    (display-input-section))
+
   (when (awt:collapsing-header "Audio")
     (display-audio-section))
 
