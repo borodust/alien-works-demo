@@ -194,6 +194,11 @@
     ((member :appimage *features*) (merge-pathnames asset-name (merge-pathnames
                                                                 "usr/share/app/"
                                                                 (aw:working-directory))))
+    ((or (member :msix *features*)
+         (member :awd-archive *features*))
+     (merge-pathnames asset-name (merge-pathnames
+                                  "rsc/"
+                                  (aw:working-directory))))
     (t (asdf:system-relative-pathname :alien-works-demo
                                       (merge-pathnames asset-name "assets/")))))
 

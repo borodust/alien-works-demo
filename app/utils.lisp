@@ -27,12 +27,11 @@
 (defun unload-foreign-libraries ()
   (bodge-blobs-support:close-foreign-libraries)
   (handler-bind ((style-warning #'muffle-warning))
-    (loop for lib in (cffi:list-foreign-libraries)
-          when (cffi:foreign-library-loaded-p lib)
-            do (progn
-                 (pushnew (cffi:foreign-library-name lib) *unloaded-foreign-libraries*
-                          :test #'equal)
-                 (cffi:close-foreign-library lib)))))
+    (loop for lib in (cffi:list-foreign-libraries :loaded-only t)
+          do (progn
+               (pushnew (cffi:foreign-library-name lib) *unloaded-foreign-libraries*
+                        :test #'equal)
+               (cffi:close-foreign-library lib)))))
 
 
 (defun reload-foreign-libraries ()
